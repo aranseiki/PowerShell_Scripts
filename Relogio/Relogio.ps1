@@ -15,7 +15,10 @@ $a = Get-Date -Format "HH:mm:ss"
 Write-Host `n 'Horário atual: ' $a
 
 $alarme = Read-Host `n 'Defina um horário para ser avisado quando essa hora chegar ("hh:mm:ss") '
-$localSomAlarme = ".\togepi.wav"
+$NomeArquivo = Get-ChildItem -Name ".\togepi.wav"
+$RaizCaminhoArquivo = $NomeArquivo.PSDrive | select Root
+$CaminhoArquivo = $NomeArquivo.PSDrive | select CurrentLocation
+$localSomAlarme = $RaizCaminhoArquivo.Root.ToString() + $CaminhoArquivo.CurrentLocation.ToString() + "\" + $NomeArquivo
 
 $corFundoTexto = $corFundo
 $corFundoTextoModificado = 'yellow'
