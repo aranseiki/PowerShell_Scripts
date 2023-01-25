@@ -42,26 +42,24 @@ if ($ValidacaoDiretorioVEnv -eq $false) {
 }
 
 Write-Host 'Verificando quantidade de execuções destinadas: ' `n
-$PortaWebdriver = $ListaParametrosIni.PortaWebdriver
+$NumeroExecucoes = $ListaParametrosIni.NumeroExecucoes
 
 if (
-    ($null -eq $PortaWebdriver) -or
-    ("''" -eq $PortaWebdriver) -or
-    ('""' -eq $PortaWebdriver) -or
-    (' ' -eq $PortaWebdriver)
+    ($null -eq $NumeroExecucoes) -or
+    ("''" -eq $NumeroExecucoes) -or
+    ('""' -eq $NumeroExecucoes) -or
+    (' ' -eq $NumeroExecucoes)
 ) {
-    $listaPortaWebdriver = @('')
-} else {
-    $listaPortaWebdriver = $PortaWebdriver.Split(',')
+    $NumeroExecucoes = '1'
 }
 
-foreach($Porta in $listaPortaWebdriver) {
+$NumeroExecucoes = $NumeroExecucoes.Replace("'", '').Replace('"', '')
+$NumeroExecucoes = [int] $NumeroExecucoes
+for($execucao = 1; $execucao -le $NumeroExecucoes; $execucao++) {
     Write-Host "Executando o fluxo de trabalho" `n
+    Write-Host "Execução $execucao de $NumeroExecucoes" `n
 
-    $env:EnvPortaWebdriver = $Porta
-    Write-Host "Porta de webdriver em uso: " $env:EnvPortaWebdriver `n
     $ArquivoIniciarPS1 = $DiretorioRaiz + '\iniciar.ps1'
-
     Import-Module $ArquivoIniciarPS1
 }
 
