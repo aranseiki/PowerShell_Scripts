@@ -1,5 +1,9 @@
-﻿function Click-MouseButton($MouseCode) {
-    
+﻿function Click-MouseButton (
+    [string][Parameter(Mandatory, Position=0)] $MouseCode,
+    [int][Parameter(Mandatory, Position=1)] $Time
+) {
+    sleep $time
+
     $signature=@' 
       [DllImport("user32.dll",CharSet=CharSet.Auto, CallingConvention=CallingConvention.StdCall)]
       public static extern void mouse_event(long dwFlags, long dx, long dy, long cButtons, long dwExtraInfo);
@@ -49,10 +53,7 @@
 
 Clear-Host
 
-$MouseCode = 'left'
-sleep 10 | Click-MouseButton($MouseCode)
-
-Click-MouseButton($MouseCode)
+Click-MouseButton LEFT 30
 
 <#
     MOUSEEVENTF_MOVED      = 0x0001 ;

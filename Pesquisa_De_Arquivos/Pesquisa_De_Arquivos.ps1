@@ -17,8 +17,10 @@ Write-Output `n 'Arquivos encontrados: ' $a `n
 $Export = Read-Host 'Deseja exportar o resultado?'
 $ExportUpper = $export.ToUpper()
 $PathToExport = 'C:\Users\'+$env:USERNAME+'\Desktop'
-if ($ExportUpper -eq 'SIM') {
+if (($ExportUpper -eq 'SIM') -or ($ExportUpper -eq 'S') -or ($ExportUpper -eq 'Y')) {
 
+    $PathToExport = Read-Host 'Informe o caminho para a exportação '
+    New-item -Path $PathToExport -ItemType file -Name export.txt -Force
     Clear-Content -Path $PathToExport\export.txt
     Add-Content -Path $PathToExport\export.txt -Value $a
     Write-Output 'Resultado exportado para: ' $PathToExport `n
@@ -39,7 +41,7 @@ Clear-Host
 Write-Output 'Início da busca: ' $Path `n
 Write-Output 'Foi procurado por: ' $filter `n
 Write-Output 'Exportar resultado: ' $Export `n
-if ($ExportUpper -eq 'SIM') {
+if (($ExportUpper -eq 'SIM') -or ($ExportUpper -eq 'S') -or ($ExportUpper -eq 'Y'))  {
 
     Write-Output 'Abrir arquivo exportado: ' $OpenFile `n
 

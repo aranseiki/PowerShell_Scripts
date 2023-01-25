@@ -1,9 +1,9 @@
-﻿$corFrenteTexto = 'red'
-$corFundo = 'black'
-$zoom = 180
-$Host.PrivateData.ConsolePaneBackgroundColor = $corFundo
-$Host.PrivateData.ConsolePaneForegroundColor = $corFrenteTexto
-$Host.PrivateData.Zoom = $zoom
+﻿#$corFrenteTexto = 'red'
+#$corFundo = 'black'
+#$zoom = 180
+#$Host.PrivateData.ConsolePaneBackgroundColor = $corFundo
+#$Host.PrivateData.ConsolePaneForegroundColor = $corFrenteTexto
+#$Host.PrivateData.Zoom = $zoom
 
 #$Host.PrivateData.Window.Topmost = $true
 
@@ -38,13 +38,14 @@ while ( $a ) {
 
         Write-Host `n 'Aviso!'
         Write-Host `n 'Chegou o horário solicitado'
-        $Host.PrivateData.ConsolePaneTextBackgroundColor = $corFundoTextoModificado
+        #$Host.PrivateData.ConsolePaneTextBackgroundColor = $corFundoTextoModificado
         Write-Host `n $alarme
-        $a = [System.Media.SoundPlayer]::new()
-        $a.SoundLocation = $localSomAlarme
-        $a.Play()
+        #$a = [System.Media.SoundPlayer]::new()
+        #$a.SoundLocation = $localSomAlarme
+        #$a.Play()
+        [console]::beep(2350,500) 
         sleep 4
-        $Host.PrivateData.ConsolePaneTextBackgroundColor = $corFundoTexto
+        #$Host.PrivateData.ConsolePaneTextBackgroundColor = $corFundoTexto
         
 
     } elseif ( $aString -gt $alarme ) {

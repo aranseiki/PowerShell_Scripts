@@ -2,15 +2,15 @@
 
 Write-Host 'Script iniciado... ' `n
 
-$Path = 'D:\OneDrive - Etec Centro Paula Souza'
+$Path = 'D:\'
 Set-Location $Path 
 Write-Host 'Caminho raiz a ser verificado:' $Path `n
 
-$Filter = 'WIN10X64'
+$Filter = 'DESKTOP-'
 Write-Host 'O que estamos procurando no arquivo:' $Filter `n
 
 $PathReport = '.\'
-$way = Get-ChildItem -Force -Path $Path -Directory -Depth 999999999 | Select FullName
+$way = Get-ChildItem -Force -Path $Path -Directory -Depth 999999999 -ErrorAction Ignore | Select FullName
 Write-Host 'Pasta destino do arquivo log:' $PathReport `n
 
 Set-Location $PathReport 
@@ -30,14 +30,14 @@ Write-Host 'Executando a ação... ' `n
 
 foreach ($item in $way) {
     
-    Set-Location $item
+    Set-Location $item -ErrorAction Ignore
     
     
-    if (Get-ChildItem -Path .\ -File *$Filter* -Recurse -Force){
+    if (Get-ChildItem -Path .\ -File *$Filter* -Recurse -Force -ErrorAction Ignore){
     
         $CurrentLocation = Get-Location
         $CurrentLocation.ToString() 
-        Remove-Item -Path .\*$Filter* -Force -Recurse 
+        Remove-Item -Path .\*$Filter* -Force -Recurse -ErrorAction Ignore
         Write-Host `n 'O arquivo que contem' $Filter 'no nome foi removido' `n `n `n
         Set-Location ..
          $ContagemPastasComArquivosDuplicados++
