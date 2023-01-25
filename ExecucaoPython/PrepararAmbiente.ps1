@@ -65,10 +65,9 @@ if ( $VersaoPython -ne '' ) {
     if ([string]::IsNullOrEmpty($CaminhoPython)) {
         $AppDataLocal = $env:LOCALAPPDATA
         $AppDataLocal = $AppDataLocal + '\Programs\Python'
-        [string] $CaminhoPython = Get-ChildItem $AppDataLocal -Filter *$VersaoPython* | Select-Object FullName
+        $ListaCaminhoPython = Get-ChildItem $AppDataLocal -Filter *$VersaoPython*
+        $CaminhoPython = $ListaCaminhoPython[$ListaCaminhoPython.Rank].FullName
     }
-    $CaminhoPython = $CaminhoPython.Replace('@{FullName=', '')
-    $CaminhoPython = $CaminhoPython.Replace('}', '')
     $ExecutavelPythonGlobal = $CaminhoPython + '\python.exe'
 } else {
     foreach ($LinhaEnv in $env:Path) {
