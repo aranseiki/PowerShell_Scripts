@@ -83,7 +83,7 @@ if ( $VersaoPython -ne '' ) {
 }
 
 try {
-    $CaminhoPython = $CaminhoPython[$CaminhoPython.Rank].FullName
+    $CaminhoPython = $ListaCaminhoPython[$ListaCaminhoPython.Rank].FullName
 } catch {
     $CaminhoPython = $ListaCaminhoPython.FullName
 }
