@@ -58,17 +58,15 @@ Write-Host 'Definindo configurações do Python' `n
 [string] $CaminhoPython = ''
 if ( $VersaoPython -ne '' ) {
     Write-Host 'Versão definida à mão: ' $VersaoPython `n
-    [string] $CaminhoPython = Get-ChildItem ${env:ProgramFiles(x86)} -Filter *$VersaoPython* | Select-Object FullName
-    if ([string]::IsNullOrEmpty($CaminhoPython)) {
-        [string] $CaminhoPython = Get-ChildItem ${env:ProgramFiles} -Filter *$VersaoPython* | Select-Object FullName
+    $ListaCaminhoPython = Get-ChildItem ${env:ProgramFiles(x86)} -Filter *$VersaoPython*
+    if ([string]::IsNullOrEmpty($ListaCaminhoPython)) {
+        $ListaCaminhoPython = Get-ChildItem ${env:ProgramFiles} -Filter *$VersaoPython*
     }
-    if ([string]::IsNullOrEmpty($CaminhoPython)) {
+    if ([string]::IsNullOrEmpty($ListaCaminhoPython)) {
         $AppDataLocal = $env:LOCALAPPDATA
         $AppDataLocal = $AppDataLocal + '\Programs\Python'
         $ListaCaminhoPython = Get-ChildItem $AppDataLocal -Filter *$VersaoPython*
-        $CaminhoPython = $ListaCaminhoPython[$ListaCaminhoPython.Rank].FullName
     }
-    $ExecutavelPythonGlobal = $CaminhoPython + '\python.exe'
 } else {
     foreach ($LinhaEnv in $env:Path) {
         $LinhaEnv = $LinhaEnv.split(';')
@@ -81,11 +79,16 @@ if ( $VersaoPython -ne '' ) {
             }
         }
     }
-    $CaminhoPython = $CaminhoPython.Replace('@{FullName=', '')
-    $CaminhoPython = $CaminhoPython.Replace('}', '')
-    Write-Host 'Versão automática: ' $CaminhoPython `n
-    $ExecutavelPythonGlobal = $CaminhoPython + 'python.exe'
+    Write-Host 'Versão automática: ' $CaminhoPython `n    
 }
+
+try {
+    $CaminhoPython = $CaminhoPython[$CaminhoPython.Rank].FullName
+} catch {
+    $CaminhoPython = $ListaCaminhoPython.FullName
+}
+
+$ExecutavelPythonGlobal = $CaminhoPython + '\python.exe'
 
 Write-Host 'Definindo configurações do ambiente virtual' `n
 $ExecutavelPythonVEnv = $DiretorioRaiz + '\' + $NomeVenv + '\Scripts\python.exe'
