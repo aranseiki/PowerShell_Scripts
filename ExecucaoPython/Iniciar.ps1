@@ -48,9 +48,6 @@ $caminhoArquivoMain = ('"' + $DiretorioRaiz), ($NomeArquivoPy + '"')  -join '\'
 $ExecutavelPythonVEnv = $DiretorioVenv + '\Scripts\python.exe'
 Write-Host "caminhoArquivoMain: " $caminhoArquivoMain
 
-Write-Host "Aguardando 5 segundos para iniciar a automação:"
-timeout 5
-
 Write-Host `n "Executando o Python chamando o arquivo como parâmetro" `n
 start-process $ExecutavelPythonVEnv $caminhoArquivoMain
 
