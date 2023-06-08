@@ -53,7 +53,7 @@
 
 Clear-Host
 
-Click-MouseButton LEFT 30
+Click-MouseButton LEFT 15
 
 <#
     MOUSEEVENTF_MOVED      = 0x0001 ;
