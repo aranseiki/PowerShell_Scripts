@@ -66,19 +66,38 @@ function DecodeFileChunk($frame) {
     }
 }
 
+# Função para decodificar um quadro WebSocket em uma mensagem de texto
+function DecodeWebSocketFrame($frame) {
+    try {
+        $opcode = $frame[0] -band 0xF  # Obtém o código de operação
+        $length = $frame[1] -band 0x7F  # Obtém o tamanho da carga útil
+
+        $payload = $frame[2..($length + 1)]  # Obtém a carga útil
+        $decodedMessage = [System.Text.Encoding]::UTF8.GetString($payload)
+
+        return $decodedMessage
+    } catch {
+        # Tratar exceções aqui
+        LogEvent "Erro" "Erro ao decodificar chunk de arquivo: $($_)"
+        Write-Host "Erro" "Erro ao decodificar chunk de arquivo: $($_)"
+        return @()  # Retorna um array vazio em caso de erro
+    }
+}
+
 # Função para codificar um chunk de arquivo em um quadro WebSocket
 function EncodeFileChunk($chunk) {
     try {
         $length = $chunk.Length
         $header = [byte[]]@(0x82)  # Indica um quadro de dados binários (opcode 0x2)
-        $header += if ($length -le 125) {
-            [byte]$length
+
+        if ($length -le 125) {
+            $header += [byte]$length
         } elseif ($length -le 65535) {
-            [byte]126
-            [byte[]]@($length -shr 8, $length -band 255)
+            $header += [byte]126
+            $header += [byte[]]@($length -shr 8, $length -band 255)
         } else {
-            [byte]127
-            [byte[]]@(
+            $header += [byte]127
+            $header += [byte[]]@(
                 $length -shr 56,
                 $length -shr 48,
                 $length -shr 40,
@@ -93,10 +112,36 @@ function EncodeFileChunk($chunk) {
         $encodedChunk = $header + [byte[]]$chunk
         return $encodedChunk
     } catch {
-        # Tratar exceções aqui
+        # Tratar exceções aqui, se necessário
         LogEvent "Erro" "Erro ao codificar chunk de arquivo: $($_)"
         Write-Host "Erro" "Erro ao codificar chunk de arquivo: $($_)"
         return @()  # Retorna um array vazio em caso de erro
+    }
+}
+
+function Export-MySelfSignedCertificate {
+    param (
+        [string] $Cert,
+        [System.Security.SecureString] $CertPassword,
+        [string] $DnsName,
+        [string] $ExportPath
+    )
+
+    try {
+        if ($Cert -ne $null) {
+            Wait-Debugger
+            $cert = Get-ChildItem -Path "cert:\LocalMachine\My" | Where-Object { $_.Subject -match $dnsName }
+            Export-PfxCertificate -Cert $Cert -FilePath $ExportPath -Password $CertPassword
+            Write-Host "Certificado autoassinado gerado com sucesso."
+
+            return $CertPath
+        } else {
+            Write-Host "Falha ao gerar o certificado autoassinado."
+            return $null
+        }
+    } catch {
+        Write-Host "Erro ao gerar certificado autoassinado: $($_)"
+        return $null
     }
 }
 
@@ -180,6 +225,22 @@ function LogEvent($eventType, $message) {
         # Tratar exceções aqui
         Write-Host "Erro ao registrar evento no log: $($_)"
     }
+}
+
+function New-MySelfSignedCertificate {
+    param (
+        [string] $DnsName,
+        [string] $CertName,
+        [string] $CertStoreLocation
+    )
+
+    try {
+        $cert = New-SelfSignedCertificate -DnsName $DnsName -CertStoreLocation $CertStoreLocation -FriendlyName $CertName
+    } catch {
+        Write-Host "Erro ao gerar certificado autoassinado: $($_)"
+    }
+
+    return $cert
 }
 
 # Função para processar mensagens WebSocket (lida com a transferência de arquivos)
@@ -274,6 +335,30 @@ function ReceiveAuthenticationToken($clientStream) {
     }
 }
 
+function Set-MySelfSignedCertificate {
+    param (
+        [string] $DnsName,
+        [string] $CertName,
+        [string] $CertStoreLocation,
+        [string] $ExportPath,
+        [System.Security.SecureString] $CertPassword
+    )
+
+    try {
+        $Cert = New-MySelfSignedCertificate -DnsName $DnsName -CertName $CertName -CertStoreLocation $CertStoreLocation
+
+        $CertPath = Export-MySelfSignedCertificate -Cert $Cert -ExportPath $ExportPath -CertPassword $CertPassword -DnsName $DnsName
+
+        if ($CertPath -ne $null) {
+            Write-Host "Certificado autoassinado gerado e exportado com sucesso para: $($CertPath)"
+        } else {
+            Write-Host "Falha ao exportar o certificado autoassinado."
+        }
+    } catch {
+        Write-Host "Falha ao gerar o certificado autoassinado."
+    }
+}
+
 # Função para iniciar a transferência de um arquivo do lado do servidor
 function StartFileTransfer($filePath, $clientStream) {
     try {
@@ -344,7 +429,8 @@ function StartFolderTransfer($folderPath, $clientStream) {
     }
 }
 
-function StartWebSocketServer($secretKey) {
+# Função para iniciar o servidor WebSocket
+function StartWebSocketServer([string] $secretKey, [string] $certificateThumbprint, [int] $port) {
     try {
         LogEvent "Info" "Iniciando servidor WebSocket"
 
@@ -363,13 +449,14 @@ function StartWebSocketServer($secretKey) {
         LogEvent "Info" "Porta escolhida:" $port
         Write-Host "Info" "Porta escolhida:" $port
 
-        StartWebSocketListener -Port $port -ipAddress $ipAddress -Secure $true -CertificateThumbprint "b7ab3308d1ea4477ba1480125a6fbda936490cbb"
+        StartWebSocketListener -Port $port -ipAddress $ipAddress -Secure $true -CertificateThumbprint $certificateThumbprint
     } catch {
         LogEvent "Erro" "Ocorreu um erro: $($_)"
         Write-Host "Erro" "Ocorreu um erro: $($_)"
     }
 }
 
+# Função para iniciar aguardar conexão com o servidor WebSocket
 function StartWebSocketListener {
     param (
         [int] $port,
@@ -393,8 +480,11 @@ function StartWebSocketListener {
         if ($secure) {
             LogEvent "Info" "Autenticando por SSL"
             Write-Host "Info" "Autenticando por SSL"
+            # Wait-Debugger
+            LogEvent "Servidor conectado em: $($listener.Server.LocalEndPoint.ToString())"
+            Write-Host "Servidor conectado em: $($listener.Server.LocalEndPoint.ToString())"
             # Configurar a segurança com base no certificado
-            $cert = Get-Item -Path cert:\LocalMachine\My\$certificateThumbprint
+            $cert = Get-Item -Path cert:\LocalMachine\My\$certificateThumbprint -ErrorAction Stop
             $sslStream = [System.Net.Security.SslStream]::new($listener.AcceptTcpClient().GetStream(), $false)
             $sslStream.AuthenticateAsServer($cert, $false, [System.Security.Authentication.SslProtocols]::Tls, $false)
             $clientStream = [System.IO.StreamReader]::new($sslStream)
@@ -490,8 +580,23 @@ function StartWebSocketListener {
     
 }
 
+# CORRIGIR A GERAÇÃO DE CERTIFICADO DIGITAL PARA PROSSEGUIR
+<#
+$dnsName = "localhost"
+$certName = "MySelfSignedCert"
+$certPassword = "sua-senha"
+$exportPath = "C:\dev\WebSocketServer\certificado.pfx"
+$certStoreLocation = "cert:\LocalMachine\My"
+$securePassword = ConvertTo-SecureString -String $certPassword -AsPlainText -Force
+
+Set-MySelfSignedCertificate -DnsName $dnsName -CertName $certName -CertPassword $securePassword -ExportPath $exportPath -CertStoreLocation $certStoreLocation
+#>
+
 # Define a chave secreta
 $secretKey = "404bfe08-657c-11ee-8c99-0242ac120002"
+$certificateThumbprint = "55190ce39a4d9ae208fc5fa5140219093b205ddb"
+$port = 51957
+# $certificateThumbprint = "b7ab3308d1ea4477ba1480125a6fbda936490cbb"
 
 # Chama a função principal para iniciar o servidor WebSocket
-StartWebSocketServer -secretKey $secretKey
+StartWebSocketServer -secretKey $secretKey -certificateThumbprint $certificateThumbprint -port $port

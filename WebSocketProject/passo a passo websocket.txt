@@ -1,8 +1,8 @@
-﻿Realizar o Handshake WebSocket
+﻿Passos do servidor:
+Realizar o Handshake WebSocket
 Estabelecer a Comunicação WebSocket
 Gerenciar Mensagens WebSocket
-* Tratar Desconexões
-Continuar o Loop
+Tratar Desconexões
 Tratamento de erros mais robusto
 Segurança
 Logging
@@ -10,9 +10,4 @@ Teste cuidadosamente
 Testes de Estresse e Desempenho
 Documentação
 
-1. Função de Autenticação JWT: A função IsAuthorized verifica as reivindicações do token, o que é um bom começo. No entanto, você pode querer torná-la mais genérica para verificar diferentes reivindicações, dependendo das permissões do usuário. Além disso, considere passar a chave secreta (secret key) como argumento para a função.
-Passagem da Chave Secreta: No código fornecido, a chave secreta não está sendo passada como argumento para a função IsAuthorized. Isso pode ser uma preocupação de segurança, pois a chave secreta deve ser fornecida para validar o token JWT. É importante garantir que a chave secreta seja passada de forma segura para essa função.
-
-2. Codificação e Decodificação de Mensagens: As funções EncodeFileChunk e DecodeFileChunk são úteis para trabalhar com chunks de arquivo. Certifique-se de que a lógica de codificação e decodificação esteja correta para garantir a integridade dos dados.
-EncodeFileChunk e DecodeFileChunk: As funções EncodeFileChunk e DecodeFileChunk parecem estar implementadas de acordo com o propósito de codificar e decodificar chunks de arquivo em um contexto WebSocket. No entanto, a função DecodeFileChunk parece estar lidando apenas com a decodificação de chunks de arquivo, e não há uma função correspondente para a codificação. Certifique-se de que a lógica de codificação esteja implementada corretamente e seja consistente com a decodificação.
-
+Passos do cliente:
