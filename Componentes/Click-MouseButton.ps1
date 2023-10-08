@@ -50,11 +50,6 @@
 
 }
 
-
-Clear-Host
-
-Click-MouseButton LEFT 15
-
 <#
     MOUSEEVENTF_MOVED      = 0x0001 ;
     MOUSEEVENTF_LEFTDOWN   = 0x0002 ;  # 左ボタン Down
