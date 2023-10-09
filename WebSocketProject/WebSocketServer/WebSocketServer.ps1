@@ -121,7 +121,7 @@ function EncodeFileChunk($chunk) {
 
 function Export-MySelfSignedCertificate {
     param (
-        [string] $Cert,
+        [System.Security.Cryptography.X509Certificates.X509Certificate2] $Cert,
         [System.Security.SecureString] $CertPassword,
         [string] $DnsName,
         [string] $ExportPath
@@ -129,10 +129,8 @@ function Export-MySelfSignedCertificate {
 
     try {
         if ($Cert -ne $null) {
-            Wait-Debugger
-            $cert = Get-ChildItem -Path "cert:\LocalMachine\My" | Where-Object { $_.Subject -match $dnsName }
-            Export-PfxCertificate -Cert $Cert -FilePath $ExportPath -Password $CertPassword
-            Write-Host "Certificado autoassinado gerado com sucesso."
+            $CertPath = Export-PfxCertificate -Cert $Cert -FilePath $ExportPath -Password $CertPassword -Force
+            Write-Host "Certificado exportado com sucesso para: $($CertPath)"
 
             return $CertPath
         } else {
@@ -190,7 +188,7 @@ function IsValidToken($token) {
             "ValidAudience" = "seu-aplicativo.com"  # Substitua pela audiência válida
         }
 
-        $claimsPrincipal = $tokenHandler.ValidateToken($token, $tokenValidationParameters, [ref]$null)
+        $tokenHandler.ValidateToken($token, $tokenValidationParameters, [ref]$null)
 
         # Se a validação for bem-sucedida, o token é válido
         return $true
@@ -231,11 +229,15 @@ function New-MySelfSignedCertificate {
     param (
         [string] $DnsName,
         [string] $CertName,
+        [DateTime] $notAfter,
         [string] $CertStoreLocation
     )
 
     try {
-        $cert = New-SelfSignedCertificate -DnsName $DnsName -CertStoreLocation $CertStoreLocation -FriendlyName $CertName
+        # Gera o certificado com a chave privada associada
+        $cert = New-SelfSignedCertificate -DnsName $dnsName -CertStoreLocation $certStoreLocation -FriendlyName $certName -KeyExportPolicy Exportable -KeyProtection None -KeyUsage KeyEncipherment,DataEncipherment,DigitalSignature -Type SSLServerAuthentication
+
+        # $cert = New-SelfSignedCertificate -DnsName $DnsName -CertStoreLocation $CertStoreLocation -FriendlyName $CertName -NotAfter $notAfter
     } catch {
         Write-Host "Erro ao gerar certificado autoassinado: $($_)"
     }
@@ -340,20 +342,15 @@ function Set-MySelfSignedCertificate {
         [string] $DnsName,
         [string] $CertName,
         [string] $CertStoreLocation,
+        [DateTime] $notAfter,
         [string] $ExportPath,
         [System.Security.SecureString] $CertPassword
     )
 
     try {
-        $Cert = New-MySelfSignedCertificate -DnsName $DnsName -CertName $CertName -CertStoreLocation $CertStoreLocation
+        $Cert = New-MySelfSignedCertificate -DnsName $DnsName -CertName $CertName -CertStoreLocation $CertStoreLocation -notAfter $notAfter
 
-        $CertPath = Export-MySelfSignedCertificate -Cert $Cert -ExportPath $ExportPath -CertPassword $CertPassword -DnsName $DnsName
-
-        if ($CertPath -ne $null) {
-            Write-Host "Certificado autoassinado gerado e exportado com sucesso para: $($CertPath)"
-        } else {
-            Write-Host "Falha ao exportar o certificado autoassinado."
-        }
+        Export-MySelfSignedCertificate -Cert $Cert -ExportPath $ExportPath -CertPassword $CertPassword -DnsName $DnsName | Out-Null
     } catch {
         Write-Host "Falha ao gerar o certificado autoassinado."
     }
@@ -430,21 +427,21 @@ function StartFolderTransfer($folderPath, $clientStream) {
 }
 
 # Função para iniciar o servidor WebSocket
-function StartWebSocketServer([string] $secretKey, [string] $certificateThumbprint, [int] $port) {
+function StartWebSocketServer([string] $secretKey, [string] $certificateThumbprint, $ipAddress, [int] $port) {
     try {
         LogEvent "Info" "Iniciando servidor WebSocket"
 
         # Exemplo de uso das funções
         LogEvent "Info" "Escolhendo um IP de Escuta"
         Write-Host "Info" "Escolhendo um IP de Escuta"
-        $ipAddress = ChooseListeningIP $ipUser = $null
+        $ipAddress = ChooseListeningIP -ipUser $ipAddress
 
         LogEvent "Info" "IP escolhido:" $ipAddress
         Write-Host "Info" "IP escolhido:" $ipAddress
 
         LogEvent "Info" "Escolhendo uma Porta de Escuta"
         Write-Host "Info" "Escolhendo uma Porta de Escuta"
-        $port = ChooseListeningPort $portUser = $null
+        $port = ChooseListeningPort -portUser $port
 
         LogEvent "Info" "Porta escolhida:" $port
         Write-Host "Info" "Porta escolhida:" $port
@@ -480,7 +477,6 @@ function StartWebSocketListener {
         if ($secure) {
             LogEvent "Info" "Autenticando por SSL"
             Write-Host "Info" "Autenticando por SSL"
-            # Wait-Debugger
             LogEvent "Servidor conectado em: $($listener.Server.LocalEndPoint.ToString())"
             Write-Host "Servidor conectado em: $($listener.Server.LocalEndPoint.ToString())"
             # Configurar a segurança com base no certificado
@@ -580,23 +576,26 @@ function StartWebSocketListener {
     
 }
 
-# CORRIGIR A GERAÇÃO DE CERTIFICADO DIGITAL PARA PROSSEGUIR
 <#
 $dnsName = "localhost"
 $certName = "MySelfSignedCert"
 $certPassword = "sua-senha"
 $exportPath = "C:\dev\WebSocketServer\certificado.pfx"
 $certStoreLocation = "cert:\LocalMachine\My"
+$notAfter = (Get-Date).AddYears(1)
 $securePassword = ConvertTo-SecureString -String $certPassword -AsPlainText -Force
 
-Set-MySelfSignedCertificate -DnsName $dnsName -CertName $certName -CertPassword $securePassword -ExportPath $exportPath -CertStoreLocation $certStoreLocation
+Set-MySelfSignedCertificate -DnsName $dnsName -CertName $certName -CertPassword $securePassword -ExportPath $exportPath -CertStoreLocation $certStoreLocation -notAfter $notAfter
 #>
 
+# <#
 # Define a chave secreta
 $secretKey = "404bfe08-657c-11ee-8c99-0242ac120002"
-$certificateThumbprint = "55190ce39a4d9ae208fc5fa5140219093b205ddb"
 $port = 51957
-# $certificateThumbprint = "b7ab3308d1ea4477ba1480125a6fbda936490cbb"
+$certificateThumbprint = "b7ab3308d1ea4477ba1480125a6fbda936490cbb"
+
+# AJUSTAR A PASSAGEM DO CERTIFICADO PARA O CERTIFICADO EM SI E NÃO O TOKEN DENTRO DELE
 
 # Chama a função principal para iniciar o servidor WebSocket
-StartWebSocketServer -secretKey $secretKey -certificateThumbprint $certificateThumbprint -port $port
+StartWebSocketServer -secretKey $secretKey -certificateThumbprint $certificateThumbprint -ipAddress $null -port $port
+#>

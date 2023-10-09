@@ -1,4 +1,4 @@
-const socket = new WebSocket("wss://localhost:55723");
+const socket = new WebSocket("wss://localhost:51957");
 
 socket.addEventListener("open", (event) => {
     console.log("Conexão aberta com sucesso.");
