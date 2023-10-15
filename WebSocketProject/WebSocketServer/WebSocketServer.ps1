@@ -389,10 +389,13 @@ function StartWebSocketListener {
             Write-Host "Info" "Autenticando por SSL"
             LogEvent "Info" "Servidor conectado em: $($listener.Server.LocalEndPoint.ToString())"
             Write-Host "Info" "Servidor conectado em: $($listener.Server.LocalEndPoint.ToString())"
+
             # Configurar a segurança com base no certificado
             $cert = Get-Item -Path cert:\LocalMachine\My\$certificateThumbprint -ErrorAction Stop
             $sslStream = [System.Net.Security.SslStream]::new($listener.AcceptTcpClient().GetStream(), $false)
-            $sslStream.AuthenticateAsServer($cert, $false, [System.Security.Authentication.SslProtocols]::Tls, $false)
+            $sslStream.AuthenticateAsServer($cert, $false, $sslProtocols, $false)
+            $sslProtocols = [System.Security.Authentication.SslProtocols]::Tls
+
             $clientStream = [System.IO.StreamReader]::new($sslStream)
         } else {
             LogEvent "Info" "Autenticando sem SSL"
@@ -486,7 +489,15 @@ function StartWebSocketListener {
 }
 
 # Função para iniciar o servidor WebSocket
-function StartWebSocketServer([string] $secretKey, [string] $certificateThumbprint, $ipAddress, [int] $port) {
+function StartWebSocketServer() {
+    param(
+        $ipAddress,
+        [int] $port,
+        [bool] $Secure,
+        [string] $secretKey,
+        [string] $certificateThumbprint
+    )
+
     try {
         LogEvent "Info" "Iniciando servidor WebSocket"
 
@@ -505,21 +516,26 @@ function StartWebSocketServer([string] $secretKey, [string] $certificateThumbpri
         LogEvent "Info" "Porta escolhida:" $port
         Write-Host "Info" "Porta escolhida:" $port
 
-        StartWebSocketListener -Port $port -ipAddress $ipAddress -Secure $true -CertificateThumbprint $certificateThumbprint
+        StartWebSocketListener -Port $port `
+            -ipAddress $ipAddress `
+            -Secure $secure `
+            -CertificateThumbprint $certificateThumbprint `
+            -secretKey $secretKey
     } catch {
         LogEvent "Erro" "Ocorreu um erro: $($_)"
         Write-Host "Erro" "Ocorreu um erro: $($_)"
     }
 }
 
-# <#
-# Define a chave secreta
-$secretKey = "404bfe08-657c-11ee-8c99-0242ac120002"
+$ipAddress = $null
 $port = 51957
+$secure = $false
+$secretKey = "404bfe08-657c-11ee-8c99-0242ac120002"
 $certificateThumbprint = "b7ab3308d1ea4477ba1480125a6fbda936490cbb"
 
-# AJUSTAR A PASSAGEM DO CERTIFICADO PARA O CERTIFICADO EM SI E NÃO O TOKEN DENTRO DELE
-
 # Chama a função principal para iniciar o servidor WebSocket
-StartWebSocketServer -secretKey $secretKey -certificateThumbprint $certificateThumbprint -ipAddress $null -port $port
-#>
+StartWebSocketServer -ipAddress $ipAddress `
+    -port $port `
+    -Secure $secure `
+    -secretKey $secretKey `
+    -certificateThumbprint $certificateThumbprint
