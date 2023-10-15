@@ -66,6 +66,14 @@ function DecodeFileChunk($frame) {
     }
 }
 
+# Função para decodificar um quadro WebSocket da requisição do cliente
+function DecodeWebSocketClientFrame([string] $frameData) {
+    $length = $frameData[1] -band 0x7F
+    $payloadData = $frameData.Substring(2, $length)
+
+    return $payloadData
+}
+
 # Função para decodificar um quadro WebSocket em uma mensagem de texto
 function DecodeWebSocketFrame($frame) {
     try {
@@ -392,7 +400,9 @@ function StartWebSocketListener {
 
             # Configurar a segurança com base no certificado
             $cert = Get-Item -Path cert:\LocalMachine\My\$certificateThumbprint -ErrorAction Stop
-            $sslStream = [System.Net.Security.SslStream]::new($listener.AcceptTcpClient().GetStream(), $false)
+            $tcpClient = $listener.AcceptTcpClient()
+            $networkStream = $tcpClient.GetStream()
+            $sslStream = [System.Net.Security.SslStream]::new($networkStream, $false)
             $sslStream.AuthenticateAsServer($cert, $false, $sslProtocols, $false)
             $sslProtocols = [System.Security.Authentication.SslProtocols]::Tls
 
@@ -400,15 +410,28 @@ function StartWebSocketListener {
         } else {
             LogEvent "Info" "Autenticando sem SSL"
             Write-Host "Info" "Autenticando sem SSL"
-            $clientStream = [System.IO.StreamReader]::new($listener.AcceptTcpClient().GetStream())
+            $tcpClient = $listener.AcceptTcpClient()
+            $networkStream = $tcpClient.GetStream()
+            $clientStream = [System.IO.StreamReader]::new($networkStream)
         }
 
         LogEvent "Info" "Lendo a requisição do cliente"
         Write-Host "Info" "Lendo a requisição do cliente"
-        $request = $reader.ReadLine()
+        $reader = [System.IO.StreamReader]::new($networkStream)
+
+        if (([string]::IsNullOrWhiteSpace($reader)) -eq $false) {
+            $request = $reader.ReadLine()
+        } else {
+            LogEvent "Erro" "A requisição está vazia. Envie alguma mensagem na requisição pelo cliente"
+            Write-Error "Erro" "A requisição está vazia. Envie alguma mensagem na requisição pelo cliente"
+
+            continue
+        }
 
         LogEvent "Info" "Verificando se a requisição é um handshake WebSocket"
         Write-Host "Info" "Verificando se a requisição é um handshake WebSocket"
+        Wait-Debugger
+        $request = DecodeWebSocketClientFrame -frame $request
         if ($request -match "Sec-WebSocket-Key:") {
             LogEvent "Info" "Recuperando a chave do cabeçalho do cliente"
             Write-Host "Info" "Recuperando a chave do cabeçalho do cliente"
